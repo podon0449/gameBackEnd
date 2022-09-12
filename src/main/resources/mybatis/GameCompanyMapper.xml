@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.podong.game.module.gamecompany.dao.GameCompanyMapper">
+    <select id="getGameCompanyList" resultType="com.podong.game.module.gamecompany.bean.GameCompanyInfoVO" statementType="PREPARED">
+        SELECT  CM.GAME_COMPANY_CID AS gameCompanyCid
+                , CM.GAME_COMPANY_NAME AS gameCompanyName
+                , CM.GAME_COMPANY_IMG AS gameCompanyImg
+                , (
+                    SELECT COUNT(GM.GAME_ID)
+                    FROM   GM_GAME GM
+                    WHERE  GM.COMPANY_CID = CM.GAME_COMPANY_CID
+                    AND GM.USE_YN='Y') AS gameMakeCnt
+                , (
+                    SELECT COUNT(GM.GAME_ID)
+                    FROM   GM_GAME GM
+                    WHERE  GM.COMPANY_CID = CM.GAME_COMPANY_CID
+                    AND    GM.SERVICE_STATUS ='서비스'
+                    AND    GM.USE_YN='Y'
+                  ) AS gameServiceCnt
+        FROM    GM_GAME_COMPANY CM
+        WHERE   CM.USE_YN = 'Y'
+        <if test='null != keyword and "" != keyword  '>
+            AND  CM.GAME_COMPANY_NAME LIKE CONCAT('%',#{keyword},'%')
+        </if>
+        <choose>
+            <when test =' "cn_1" == rankNst'>
+                ORDER BY CM.INSERT_DATE DESC
+            </when>
+            <otherwise>
+                ORDER BY CM.GAME_COMPANY_NAME
+            </otherwise>
+        </choose>
+
+        <if test='null != page'>
+            LIMIT 	#{page.pageBegin, jdbcType=NUMERIC}
+            , #{page.pageScale, jdbcType=NUMERIC}
+        </if>
+    </select>
+    <select id="getGameCompanyCnt" resultType="int" statementType="PREPARED">
+        SELECT  COUNT(*)
+        FROM    GM_GAME_COMPANY
+        WHERE   USE_YN = 'Y'
+        <if test='null != keyword and "" != keyword  '>
+            AND  GAME_COMPANY_NAME LIKE CONCAT('%',#{keyword},'%')
+        </if>
+    </select>
+    <resultMap id="gameCompanyList" type="com.podong.game.module.gamecompany.bean.GameCompanyInfoVO">
+        <result property="gameCompanyCid" column="GAME_COMPANY_CID"/>
+        <result property="gameCompanyName" column="GAME_COMPANY_NAME"/>
+        <result property="gameCompanyTel" column="GAME_COMPANY_TEL"/>
+        <result property="gameCompanyAddr" column="GAME_COMPANY_ADDR"/>
+        <result property="gameCompanySite" column="GAME_COMPANY_SITE"/>
+        <result property="gameCompanyImg" column="GAME_COMPANY_IMG"/>
+        <collection property="makeGameList" column="GAME_COMPANY_CID" select="makeGameList"></collection>
+        <collection property="serviceGameList" column="GAME_COMPANY_CID" select="serviceGameList"></collection>
+    </resultMap>
+    <select id="makeGameList" resultType="com.podong.game.module.game.bean.GameVO">
+        SELECT  GAME_ID gameId
+                , GAME_NAME gameName
+                , IMG_URL  img
+                , PLATFORM platform
+                , GENRE genre
+                , SERVICE_STATUS serviceStatus
+        FROM    GM_GAME
+        WHERE   USE_YN = 'Y'
+        AND     COMPANY_CID = #{GAME_COMPANY_CID}
+    </select>
+    <select id="serviceGameList" resultType="com.podong.game.module.game.bean.GameVO">
+        SELECT  GAME_ID gameId
+                , GAME_NAME gameName
+                , IMG_URL  img
+                , PLATFORM platform
+                , GENRE genre
+                , SERVICE_STATUS serviceStatus
+        FROM    GM_GAME
+        WHERE   USE_YN = 'Y'
+        AND     COMPANY_CID = #{GAME_COMPANY_CID}
+        AND     SERVICE_STATUS = '개발중'
+    </select>
+    <select id="getGameCompanyDetail" resultMap="gameCompanyList"  statementType="PREPARED">
+        SELECT  GAME_COMPANY_CID
+                , GAME_COMPANY_NAME
+                , GAME_COMPANY_TEL
+                , GAME_COMPANY_ADDR
+                , GAME_COMPANY_SITE
+                , GAME_COMPANY_IMG
+        FROM    GM_GAME_COMPANY
+        WHERE   USE_YN = 'Y'
+        AND     GAME_COMPANY_CID = #{gameCompanyCid}
+    </select>
+
+
+</mapper>
